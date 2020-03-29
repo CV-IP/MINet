@@ -7,6 +7,7 @@ CVPR 2020.
 The code and experimental results have be released now :smile:.
 
 * 2020/3/28: Update our code, results, pretrained parameters and some documents.
+* 2020/3/29: Update the method of evaluating results. (See the [`readme.md`](./code/readme.md#Evaluation) for more details.)
 
 ## Repository Details
 
@@ -15,7 +16,7 @@ The code and experimental results have be released now :smile:.
 
 ## Related Links
 
-* Paper: 
+* Paper:
     - Baidu Pan: <https://pan.baidu.com/s/1zN7m4aeDhRvTOeF2naATRg> (baidu: 48au)
     - Google Drive: <https://drive.google.com/file/d/1gUYu0hO_8Xc5jgpzetuOVFDrqeSOiKZN/view?usp=sharing>
 * Results & Pretrained Parameters:

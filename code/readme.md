@@ -59,6 +59,10 @@ pip install tensorflow==1.13.1
 4. In the folder `code`, run `python main.py`.
 5. You can find predictions from the model in the folder `pre` of the `output`.
 
+## Evaluation
+
+We evaluation results of all models by [ArcherFMY/sal_eval_toolbox](https://github.com/ArcherFMY/sal_eval_toolbox/tree/master/tools). And we add the code about E-measure and weighted F-measure and update the related code in our forked repository [lartpang/sal_eval_toolbox](https://github.com/lartpang/SODEvalToolkit/tree/master/tools). Welcome to use it in your code :star:!
+
 ## More
 
 If there are other issues, you can create a new issue.
