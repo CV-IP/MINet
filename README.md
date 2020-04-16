@@ -6,6 +6,7 @@ CVPR 2020.
 
 The code and experimental results have be released now :smile:.
 
+* 2020/4/16: Modify some misleading descriptions in the `readme.md` file.
 * 2020/4/7: Simplify the structure of the repository.
 * 2020/3/29: Update the method of evaluating results. (See the [`readme.md`](./code/readme.md#Evaluation) for more details.)
 * 2020/3/28: Update our code, results, pretrained parameters and some documents.
