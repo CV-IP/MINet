@@ -146,7 +146,7 @@ class conv_3nV1(nn.Module):
         self.upsample = nn.Upsample(scale_factor=2, mode='nearest')
         self.downsample = nn.AvgPool2d((2, 2), stride=2)
         
-        mid_c = min(in_hc, in_mc, in_lc)
+        mid_c = 64
         self.relu = nn.ReLU(True)
         
         # stage 0
@@ -213,9 +213,9 @@ class conv_3nV1(nn.Module):
         return out
 
 
-class AIM(nn.Module):
+class LightAIM(nn.Module):
     def __init__(self, iC_list, oC_list):
-        super(AIM, self).__init__()
+        super(LightAIM, self).__init__()
         ic0, ic1, ic2, ic3, ic4 = iC_list
         oc0, oc1, oc2, oc3, oc4 = oC_list
         self.conv0 = conv_2nV1(in_hc=ic0, in_lc=ic1, out_c=oc0, main=0)

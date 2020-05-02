@@ -3,8 +3,6 @@ from datetime import datetime
 
 __all__ = ['proj_root', 'arg_config', 'path_config']
 
-from network.MINet import MINet_VGG16, MINet_Res50
-
 proj_root = os.path.dirname(os.path.dirname(__file__))
 datasets_root = '/home/lart/Datasets/'
 
@@ -19,21 +17,13 @@ dutste_path = os.path.join(datasets_root, 'RGBSaliency', 'DUTS/Test')
 # 配置区域 #####################################################################
 arg_config = {
     # 常用配置
-    'NET': 'MINet_Res50',  # 决定使用哪一个网络
-    'MINet_VGG16': {
-        'net': MINet_VGG16,
-        'exp_name': 'MINet_VGG16'
-    },
-    'MINet_Res50': {
-        'net': MINet_Res50,
-        'exp_name': 'MINet_Res50'
-    },
+    'exp_name': 'CPLightMINet_VGG16@fewepoch',  # 决定使用哪一个网络
     
     'resume': False,  # 是否需要恢复模型
     'use_aux_loss': True,  # 是否使用辅助损失
     'save_pre': True,  # 是否保留最终的预测结果
-    'epoch_num': 0,  # 训练周期, 0: directly test model
-    'lr': 0.001,  # 微调时缩小100倍
+    'epoch_num': 30,  # 训练周期, 0: directly test model
+    'lr': 0.01,  # 微调时缩小100倍
     'xlsx_name': 'result.xlsx',
     
     'rgb_data': {
@@ -62,15 +52,15 @@ arg_config = {
     'lr_type': 'poly',
     'lr_decay': 0.9,  # poly
     'use_bigt': True,  # 有时似乎打开好，有时似乎关闭好？
-    'batch_size': 4,  # 要是继续训练, 最好使用相同的batchsize
+    'batch_size': 12,  # 要是继续训练, 最好使用相同的batchsize
     'num_workers': 8,  # 不要太大, 不然运行多个程序同时训练的时候, 会造成数据读入速度受影响
     'input_size': 320,
 }
-################################################################################
+##################################################t##############################
 
 ckpt_path = os.path.join(proj_root, 'output')
 
-pth_log_path = os.path.join(ckpt_path, arg_config[arg_config['NET']]['exp_name'])
+pth_log_path = os.path.join(ckpt_path, arg_config['exp_name'].replace('@', '_'))
 tb_path = os.path.join(pth_log_path, 'tb')
 save_path = os.path.join(pth_log_path, 'pre')
 pth_path = os.path.join(pth_log_path, 'pth')

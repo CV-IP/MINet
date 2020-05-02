@@ -1,5 +1,4 @@
 import os
-import os.path as osp
 from pprint import pprint
 
 import numpy as np
@@ -12,7 +11,9 @@ from torchvision import transforms
 from torchvision.utils import make_grid
 from tqdm import tqdm
 
+import network as network_lib
 from loss.CEL import CEL
+from utils.config import arg_config, path_config
 from utils.imgs.create_loader_imgs import create_loader
 from utils.metric import cal_maxf, cal_pr_mae_meanf
 from utils.misc import AvgMeter, construct_print, make_log, write_xlsx
@@ -25,7 +26,12 @@ class Solver():
         self.path = path
         self.dev = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.to_pil = transforms.ToPILImage()
-        self.model_name = args[args['NET']]['exp_name']
+        self.exp_name = args['exp_name']
+        if '@' in self.exp_name:
+            network_realname = self.exp_name.split('@')[0]
+        else:
+            network_realname = self.exp_name
+        self.exp_name = self.exp_name.replace('@', '_')
         
         self.tr_data_path = self.args['rgb_data']['tr_data_path']
         self.te_data_path = self.args['rgb_data']['te_data_path']
@@ -45,7 +51,10 @@ class Solver():
             data_path=self.te_data_path, mode='test', get_length=True
         )
         
-        self.net = self.args[self.args["NET"]]["net"]().to(self.dev)
+        if hasattr(network_lib, network_realname):
+            self.net = getattr(network_lib, network_realname)().to(self.dev)
+        else:
+            raise AttributeError
         pprint(self.args)
         
         if self.args['resume']:
@@ -95,10 +104,7 @@ class Solver():
                 self.opti.step()
                 
                 if self.args["sche_usebatch"]:
-                    if self.args["lr_type"] == "poly":
-                        self.sche.step(curr_iter + 1)
-                    else:
-                        raise NotImplementedError
+                    self.sche.step()
                 
                 # 仅在累计的时候使用item()获取数据
                 train_iter_loss = train_loss.item()
@@ -119,7 +125,7 @@ class Solver():
                 if (self.args["print_freq"] > 0 and (curr_iter + 1) % self.args["print_freq"] == 0):
                     log = (
                         f"[I:{curr_iter}/{self.iter_num}][E:{curr_epoch}:{self.end_epoch}]>"
-                        f"[{self.model_name}]"
+                        f"[{self.exp_name}]"
                         f"[Lr:{self.opti.param_groups[0]['lr']:.7f}]"
                         f"[Avg:{train_loss_record.avg:.5f}|Cur:{train_iter_loss:.5f}|"
                         f"{loss_item_list}]"
@@ -129,10 +135,7 @@ class Solver():
             
             # 根据周期修改学习率
             if not self.args["sche_usebatch"]:
-                if self.args["lr_type"] == "poly":
-                    self.sche.step(curr_epoch + 1)
-                else:
-                    raise NotImplementedError
+                self.sche.step()
             
             # 每个周期都进行保存测试，保存的是针对第curr_epoch+1周期的参数
             self.save_checkpoint(
@@ -158,7 +161,7 @@ class Solver():
             
             total_results[data_name.upper()] = results
         # save result into xlsx file.
-        write_xlsx(self.model_name, total_results)
+        write_xlsx(self.exp_name, total_results)
     
     def test(self, save_pre):
         if self.only_test:
@@ -174,7 +177,7 @@ class Solver():
         
         tqdm_iter = tqdm(enumerate(loader), total=len(loader), leave=False)
         for test_batch_id, test_data in tqdm_iter:
-            tqdm_iter.set_description(f"{self.model_name}: te=>{test_batch_id + 1}")
+            tqdm_iter.set_description(f"{self.exp_name}: te=>{test_batch_id + 1}")
             with torch.no_grad():
                 in_imgs, in_names, in_mask_paths = test_data
                 in_imgs = in_imgs.to(self.dev, non_blocking=True)
@@ -183,12 +186,12 @@ class Solver():
             outputs_np = outputs.cpu().detach()
             
             for item_id, out_item in enumerate(outputs_np):
-                gimg_path = osp.join(in_mask_paths[item_id])
+                gimg_path = os.path.join(in_mask_paths[item_id])
                 gt_img = Image.open(gimg_path).convert("L")
                 out_img = self.to_pil(out_item).resize(gt_img.size)
                 
                 if save_pre:
-                    oimg_path = osp.join(self.save_path, in_names[item_id] + ".png")
+                    oimg_path = os.path.join(self.save_path, in_names[item_id] + ".png")
                     out_img.save(oimg_path)
                 
                 gt_img = np.asarray(gt_img)
@@ -205,12 +208,26 @@ class Solver():
         return results
     
     def make_scheduler(self):
-        total_num = self.iter_num if self.args['sche_usebatch'] else self.end_epoch
-        if self.args["lr_type"] == "poly":
-            lamb = lambda curr: pow((1 - float(curr) / total_num), self.args["lr_decay"])
-            scheduler = lr_scheduler.LambdaLR(self.opti, lr_lambda=lamb)
-        else:
-            raise NotImplementedError
+        def get_lr_coefficient(curr_epoch):
+            # curr_epoch start from 0
+            total_num = self.iter_num if self.args['sche_usebatch'] else self.end_epoch
+            if self.args["lr_type"] == "poly":
+                coefficient = pow((1 - float(curr_epoch) / total_num), self.args["lr_decay"])
+            elif self.args["lr_type"] == "poly_warmup":
+                turning_epoch = 5
+                if curr_epoch < turning_epoch:
+                    # 0,1,2,...,turning_epoch-1
+                    coefficient = 1 / turning_epoch * (1 + curr_epoch)
+                else:
+                    # turning_epoch,...,end_epoch
+                    curr_epoch -= (turning_epoch - 1)
+                    total_num -= (turning_epoch - 1)
+                    coefficient = pow((1 - float(curr_epoch) / total_num), self.args["lr_decay"])
+            else:
+                raise NotImplementedError
+            return coefficient
+        
+        scheduler = lr_scheduler.LambdaLR(self.opti, lr_lambda=get_lr_coefficient)
         return scheduler
     
     def make_optim(self):
@@ -277,6 +294,20 @@ class Solver():
                 eps=1e-8,
                 weight_decay=self.args["weight_decay"]
             )
+        elif self.args["optim"] == "f3_trick":
+            backbone, head = [], []
+            for name, params_tensor in self.net.named_parameters():
+                if 'encoder1' in name:
+                    pass
+                elif 'encoder' in name:
+                    backbone.append(params_tensor)
+                else:
+                    head.append(params_tensor)
+            optimizer = SGD(params=[{'params': backbone}, {'params': head}],
+                            lr=self.args["lr"],
+                            momentum=self.args["momentum"],
+                            weight_decay=self.args["weight_decay"],
+                            nesterov=self.args["nesterov"])
         else:
             raise NotImplementedError
         print("optimizer = ", optimizer)
@@ -292,7 +323,7 @@ class Solver():
             state_net_path (str): 保存模型权重参数的路径
         """
         state_dict = {
-            'arch': self.args["NET"],
+            'arch': self.exp_name,
             'epoch': current_epoch,
             'net_state': self.net.state_dict(),
             'opti_state': self.opti.state_dict(),
@@ -314,7 +345,7 @@ class Solver():
             construct_print(f"Loading checkpoint '{load_path}'")
             checkpoint = torch.load(load_path)
             if mode == 'all':
-                if self.args["NET"] == checkpoint['arch']:
+                if self.exp_name == checkpoint['arch']:
                     self.start_epoch = checkpoint['epoch']
                     self.net.load_state_dict(checkpoint['net_state'])
                     self.opti.load_state_dict(checkpoint['opti_state'])
@@ -330,3 +361,8 @@ class Solver():
                 raise NotImplementedError
         else:
             raise Exception(f"{load_path}路径不正常，请检查")
+
+
+if __name__ == '__main__':
+    solver = Solver(args=arg_config, path=path_config)
+    print(solver.exp_name)

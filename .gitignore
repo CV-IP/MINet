@@ -1,8 +1,8 @@
 .vscode/
 .idea/
-code/output/
 code/.vscode/
 code/.idea/
+code/output/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

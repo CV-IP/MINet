@@ -142,3 +142,9 @@ def Backbone_VGG16_in3():
     div_8 = nn.Sequential(*list(net.children())[0][23:33])
     div_16 = nn.Sequential(*list(net.children())[0][33:43])
     return div_1, div_2, div_4, div_8, div_16
+
+
+if __name__ == '__main__':
+    div1, div2, div4, div8, div16 = Backbone_VGG16_in3()
+    for model in Backbone_VGG16_in3():
+        print([(name, params.size()) for name, params in model.named_parameters()])
