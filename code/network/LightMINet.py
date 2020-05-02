@@ -136,7 +136,7 @@ class CPLightMINet_VGG16(nn.Module):
                                                                             in_data_4,
                                                                             in_data_8,
                                                                             in_data_16)
-        # here, we can use the form:
+        # Here we cannot use the following form, it will raise an error:
         # return self.trans(in_data_1, in_data_2, in_data_4, in_data_8, in_data_16)
         return in_data_1, in_data_2, in_data_4, in_data_8, in_data_16
     
