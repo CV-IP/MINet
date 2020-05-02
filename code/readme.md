@@ -44,6 +44,7 @@ pip install tensorflow==1.13.1
 
 1. You can customize the value of the [`arg_config`](./utils/config.py#L20) dictionary in the configuration file.
     * The first time you use it, you need to adjust the [path](./utils/config.py#L9-L17) of every dataset.
+    * And other setting in `config.py`, like `epoch_num`, `lr` and so on...
 2. In the folder `code`, run the command `python main.py`.
 3. Everything is OK. Just wait for the results.
 4. The test will be performed automatically when the training is completed.

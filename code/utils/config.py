@@ -17,14 +17,14 @@ dutste_path = os.path.join(datasets_root, 'RGBSaliency', 'DUTS/Test')
 # 配置区域 #####################################################################
 arg_config = {
     # 常用配置
-    'exp_name': 'CPLightMINet_VGG16@fewepoch',  # 决定使用哪一个网络
+    'exp_name': 'CPLightMINet_VGG16@fewepoch',  # <model_real_name>@<suffix>
     
     'resume': False,  # 是否需要恢复模型
     'use_aux_loss': True,  # 是否使用辅助损失
     'save_pre': True,  # 是否保留最终的预测结果
-    'epoch_num': 30,  # 训练周期, 0: directly test model
-    'lr': 0.01,  # 微调时缩小100倍
-    'xlsx_name': 'result.xlsx',
+    'epoch_num': 40,  # 训练周期, 0: directly test model
+    'lr': 0.005,  # 微调时缩小100倍
+    'xlsx_name': 'result.xlsx',  # the name of the record file
     
     'rgb_data': {
         'tr_data_path': dutstr_path,

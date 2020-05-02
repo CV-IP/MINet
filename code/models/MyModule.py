@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # @Time    : 2020/3/28
 # @Author  : Lart Pang
-# @FileName: CEL.py
+# @FileName: MyModule.py
 # @GitHub  : https://github.com/lartpang
 
 from torch import nn
