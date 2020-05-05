@@ -17,7 +17,7 @@ dutste_path = os.path.join(datasets_root, 'RGBSaliency', 'DUTS/Test')
 # 配置区域 #####################################################################
 arg_config = {
     # 常用配置
-    'exp_name': 'CPLightMINet_VGG16@fewepoch',  # <model_real_name>@<suffix>
+    'exp_name': 'CPLightMINet_Res50@EP40lr0.003deCos',  # <model_real_name>@<suffix>
     
     'resume': False,  # 是否需要恢复模型
     'use_aux_loss': True,  # 是否使用辅助损失
@@ -38,7 +38,7 @@ arg_config = {
             'soc': soc_path,
         },
     },
-    'tb_update': 0,  # >0 则使用tensorboard
+    'tb_update': 10,  # >0 则使用tensorboard
     'print_freq': 10,  # >0, 保存迭代过程中的信息
     'prefix': ('.jpg', '.png'),
     # img_prefix, gt_prefix，用在使用索引文件的时候的对应的扩展名，
@@ -50,6 +50,7 @@ arg_config = {
     'nesterov': False,
     'sche_usebatch': False,
     'lr_type': 'poly',
+    'warmup_epoch': 5,  # depond on the special lr_type, only lr_type has 'warmup'
     'lr_decay': 0.9,  # poly
     'use_bigt': True,  # 有时似乎打开好，有时似乎关闭好？
     'batch_size': 12,  # 要是继续训练, 最好使用相同的batchsize

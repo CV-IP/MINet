@@ -214,7 +214,7 @@ class Solver():
             if self.args["lr_type"] == "poly":
                 coefficient = pow((1 - float(curr_epoch) / total_num), self.args["lr_decay"])
             elif self.args["lr_type"] == "poly_warmup":
-                turning_epoch = 5
+                turning_epoch = self.args["warmup_epoch"]
                 if curr_epoch < turning_epoch:
                     # 0,1,2,...,turning_epoch-1
                     coefficient = 1 / turning_epoch * (1 + curr_epoch)
@@ -223,6 +223,16 @@ class Solver():
                     curr_epoch -= (turning_epoch - 1)
                     total_num -= (turning_epoch - 1)
                     coefficient = pow((1 - float(curr_epoch) / total_num), self.args["lr_decay"])
+            elif self.args["lr_type"] == "cosine_warmup":
+                turning_epoch = self.args["warmup_epoch"]
+                if curr_epoch < turning_epoch:
+                    # 0,1,2,...,turning_epoch-1
+                    coefficient = 1 / turning_epoch * (1 + curr_epoch)
+                else:
+                    # turning_epoch,...,end_epoch
+                    curr_epoch -= (turning_epoch - 1)
+                    total_num -= (turning_epoch - 1)
+                    coefficient = (1 + np.cos(np.pi * curr_epoch / total_num)) / 2
             else:
                 raise NotImplementedError
             return coefficient

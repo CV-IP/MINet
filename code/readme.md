@@ -1,5 +1,7 @@
 # MINet
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
+
 ## Folders & Files
 
 * `base`: Store some basic code for building the network here.
