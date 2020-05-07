@@ -104,6 +104,7 @@ def _make_train_dataset_from_list(list_filepath, prefix=('.jpg', '.png')):
 class TrainImageFolder(Dataset):
     def __init__(self, root, in_size, prefix, use_bigt=False):
         self.use_bigt = use_bigt
+        
         if os.path.isdir(root):
             construct_print(f"{root} is an image folder, we will test on it.")
             self.imgs = _make_dataset(root)

@@ -43,6 +43,9 @@ arg_config = {
     'prefix': ('.jpg', '.png'),
     # img_prefix, gt_prefix，用在使用索引文件的时候的对应的扩展名，
     
+    'size_list': [224, 256, 288, 320, 352],
+    # if you dont use the multi-scale training, you can set 'size_list': None
+    
     'reduction': 'mean',  # 损失处理的方式，可选“mean”和“sum”
     'optim': 'sgd_trick',  # 自定义部分的学习率
     'weight_decay': 5e-4,  # 微调时设置为0.0001
@@ -55,7 +58,7 @@ arg_config = {
     'use_bigt': True,  # 有时似乎打开好，有时似乎关闭好？
     'batch_size': 12,  # 要是继续训练, 最好使用相同的batchsize
     'num_workers': 8,  # 不要太大, 不然运行多个程序同时训练的时候, 会造成数据读入速度受影响
-    'input_size': 320,
+    'input_size': 352,
 }
 ##################################################t##############################
 

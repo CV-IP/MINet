@@ -1,10 +1,10 @@
 import os
+import random
 from datetime import datetime
 
 import numpy as np
 import pydensecrf.densecrf as dcrf
 import torch
-import torch.backends.cudnn as torchcudnn
 from openpyxl import Workbook, load_workbook
 from thop import profile
 from torch.autograd.variable import Variable
@@ -33,12 +33,15 @@ class AvgMeter(object):
         self.avg = self.sum / self.count
 
 
-def set_random(seed=0):
+def set_seed(seed=0):
+    random.seed(seed)
+    os.environ['PYTHONHASHSEED'] = str(seed)
+    np.random.seed(seed)
     torch.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
-    torchcudnn.enabled = True
-    torchcudnn.benchmark = True
-    torchcudnn.deterministic = False
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)  # if you are using multi-GPU.
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.deterministic = True
 
 
 def pre_mkdir():

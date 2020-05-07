@@ -45,7 +45,8 @@ class Solver():
         # 依赖与前面属性的属性
         self.pth_path = self.path["final_state_net"]
         self.tr_loader = create_loader(
-            data_path=self.tr_data_path, mode='train', get_length=False
+            data_path=self.tr_data_path, mode='train', get_length=False,
+            size_list=self.args['size_list']
         )
         self.te_loader, self.te_length = create_loader(
             data_path=self.te_data_path, mode='test', get_length=True

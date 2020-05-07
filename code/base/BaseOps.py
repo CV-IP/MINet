@@ -14,7 +14,7 @@ def cus_sample(feat, **kwargs):
     :param kwargs: size或者scale_factor
     """
     assert len(kwargs.keys()) == 1 and list(kwargs.keys())[0] in ['size', 'scale_factor']
-    return F.interpolate(feat, **kwargs, mode='bilinear', align_corners=True)
+    return F.interpolate(feat, **kwargs, mode='bilinear', align_corners=False)
 
 
 def upsample_add(*xs):
