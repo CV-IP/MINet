@@ -14,7 +14,7 @@ solver = Solver(arg_config, path_config)
 construct_print(f"Total initialization time：{datetime.now() - init_start}")
 
 shutil.copy(f"{proj_root}/utils/config.py", path_config["cfg_log"])
-shutil.copy(__file__, path_config["trainer_log"])
+shutil.copy(f"{proj_root}/utils/solver.py", path_config["trainer_log"])
 
 construct_print(f"{datetime.now()}: Start training...")
 solver.train()

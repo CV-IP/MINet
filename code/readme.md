@@ -73,3 +73,47 @@ We evaluate results of all models by [lartpang/sal_eval_toolbox](https://github.
 ## More
 
 If there are other issues, you can create a new issue.
+
+## More Experiments
+
+F3Net is the most recent work on SOD, and the performance is very good. I think its training strategy is of great reference value. Here, I have changed our training method by learning from its code.
+
+To explore the upper limit of the performance of the model, I tried some ways to improve the performance of the model on a NVIDIA GTX 1080Ti (~11G). 
+* To achieve a larger batch size:
+    * we reduce the number of intermediate channels in AIMs;
+    * we apply the `checkpoint` feature of PyTroch;
+        * <https://blog.csdn.net/one_six_mix/article/details/93937091>
+        * <https://pytorch.org/docs/stable/checkpoint.html#torch.utils.checkpoint.checkpoint>
+    * we set the batch size to 32.
+* Use more effective training strategies:
+    * We apply multi-scale training strategy (borrowed from the code of F3Net).
+    * Network parameters are trained in groups with different learning rates (borrowed from the code of F3Net).
+    * Multiple learning rate decay strategies with/without the warmup technology.
+    
+Results:
+
+ D    |         |         | DO |         |         | HI |         |         | E   |         |         | PS |         |         | SOC     |         |         | MT | LRDecay                 | Optimizer | InitLR | Scale | EP 
+---------|---------|---------|------------|---------|---------|---------|---------|---------|---------|---------|---------|-----------|---------|---------|---------|---------|---------|---------------|-------------------------|-----------------|----------|-----------|-------
+ MAXF    | MEANF   | MAE     | MAXF       | MEANF   | MAE     | MAXF    | MEANF   | MAE     | MAXF    | MEANF   | MAE     | MAXF      | MEANF   | MAE     | MAXF    | MEANF   | MAE     |               |                         |                 |          |           |       
+ 0\.853  | 0\.787  | 0\.048  | 0\.794     | 0\.734  | 0\.060  | 0\.922  | 0\.891  | 0\.036  | 0\.931  | 0\.908  | 0\.043  | 0\.856    | 0\.810  | 0\.084  | 0\.377  | 0\.342  | 0\.086  | FALSE         | Poly                    | Sgd\_trick      | 0\.05    | 320       | 40    
+ 0\.866  | 0\.793  | 0\.043  | 0\.789     | 0\.722  | 0\.059  | 0\.925  | 0\.888  | 0\.034  | 0\.935  | 0\.905  | 0\.041  | 0\.874    | 0\.822  | 0\.070  | 0\.382  | 0\.347  | 0\.110  | FALSE         | Poly                    | Sgd\_trick      | 0\.001   | 320       | 40    
+ 0\.881  | 0\.822  | 0\.037  | 0\.803     | 0\.746  | 0\.053  | 0\.934  | 0\.904  | 0\.029  | 0\.942  | 0\.919  | 0\.036  | 0\.880    | 0\.837  | 0\.066  | 0\.390  | 0\.356  | 0\.081  | FALSE         | Poly                    | Sgd\_trick      | 0\.005   | 320       | 40    
+ 0\.878  | 0\.815  | 0\.039  | 0\.803     | 0\.745  | 0\.054  | 0\.934  | 0\.904  | 0\.029  | 0\.944  | 0\.919  | 0\.035  | 0\.878    | 0\.833  | 0\.067  | 0\.385  | 0\.352  | 0\.079  | FALSE         | Cos\_warmup          | Sgd\_trick      | 0\.005   | 320       | 40    
+ 0\.878  | 0\.815  | 0\.038  | 0\.797     | 0\.741  | 0\.054  | 0\.931  | 0\.901  | 0\.031  | 0\.941  | 0\.917  | 0\.038  | 0\.875    | 0\.831  | 0\.067  | 0\.382  | 0\.355  | 0\.085  | FALSE         | Cos\_warmup          | Sgd\_trick      | 0\.003   | 320       | 40    
+ 0\.892  | 0\.836  | 0\.036  | 0\.820     | 0\.763  | 0\.053  | 0\.943  | 0\.918  | 0\.026  | 0\.950  | 0\.929  | 0\.034  | 0\.884    | 0\.847  | 0\.064  | 0\.388  | 0\.355  | 0\.087  | TRUE          | f3\_sche                | f3\_trick       | 0\.05    | 352       | 40    
+ 0\.891  | 0\.834  | 0\.037  | 0\.820     | 0\.762  | 0\.055  | 0\.942  | 0\.915  | 0\.026  | 0\.948  | 0\.928  | 0\.034  | 0\.888    | 0\.844  | 0\.064  | 0\.394  | 0\.359  | 0\.120  | TRUE          | Cos\_warmup          | f3\_trick       | 0\.05    | 352       | 40    
+ 0\.895  | 0\.840  | 0\.035  | 0\.816     | 0\.762  | 0\.055  | 0\.942  | 0\.915  | 0\.027  | 0\.947  | 0\.927  | 0\.034  | 0\.884    | 0\.843  | 0\.066  | 0\.395  | 0\.359  | 0\.112  | TRUE          | Cos\_w/o\_warmup | f3\_trick       | 0\.05    | 352       | 40    
+ 0\.893  | 0\.838  | 0\.036  | 0\.814     | 0\.759  | 0\.056  | 0\.943  | 0\.917  | 0\.026  | 0\.949  | 0\.930  | 0\.033  | 0\.886    | 0\.849  | 0\.065  | 0\.395  | 0\.359  | 0\.134  | TRUE          | Poly                    | f3\_trick       | 0\.05    | 352       | 40    
+
+* D: DUTS
+* DO: DUT-OMRON
+* HI: HKU-IS
+* E: ECSSD
+* PS: PASCAL-S
+* MT: Multi-scale Training
+* EP: Epoch Number
+
+NOTE: The results here are for reference only. Note that the results here are all tested on the complete test datasets. In fact, some of the results here can be higher if testing in the way of the existing papers. Because the test set in my paper follows the settings of the existing papers, some datasets, such as HKU-IS, are not tested with the complete dataset.
+
+注：
+此处结果仅供参考。请注意，这里的结果都是在完整的测试数据集上测试的。事实上，如果按照现有论文的方式进行测试，这里的一些结果可能会更高。由于本文中的测试集遵循现有论文的设置，一些数据集，如HKU-IS，没有使用完整的数据集进行测试。

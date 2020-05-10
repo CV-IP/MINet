@@ -8,12 +8,16 @@ CVPR 2020.
 
 The code and experimental results have be released now :smile:.
 
+* 2020/5/10: Some meaningful changes.
+    * Some methods have been tried to improve the performance of the model on specific operating environments and devices. The specific experimental results can be found in the section "More Experiments" of `./code/readme.md`.
+    * Use black as the repository formatting tool, and set the configuration file `./code/pyproject.toml`.
 * 2020/5/6: Add some new attempts and improvements.
-    *  Modified the method of importing model from the directly setting in config.py, and change it to the automatic selection and instantiation of the specific model class according to the model alias (`exp_name` in config.py).
+    * Modified the method of importing model from the directly setting in config.py, and change it to the automatic selection and instantiation of the specific model class according to the model alias (`exp_name` in config.py).
     * Added a lighter setting for AIM and MInet.
     * Added an attempt to `checkpoint` features of PyTorch.
     * Added learning rate decay strategy with learning rate warm-up. However, the parameter setting is not flexible at present, and needs to be improved.
     * A new optimization strategy has been added to imitate the settings from F3Net.
+    * Upload the MIT LICENSE file.
 * 2020/4/16: Modify some misleading descriptions in the `readme.md` file.
 * 2020/4/7: Simplify the structure of the repository.
 * 2020/3/29: Update the method of evaluating results. (See the [`readme.md`](./code/readme.md#Evaluation) for more details.)

@@ -12,7 +12,7 @@ class CEL(nn.Module):
         super(CEL, self).__init__()
         print("You are using `CEL`!")
         self.eps = 1e-6
-    
+
     def forward(self, pred, target):
         intersection = pred * target
         numerator = (pred - intersection).sum() + (target - intersection).sum()
