@@ -4,8 +4,10 @@
 # @FileName: MyLightModule.py
 # @GitHub  : https://github.com/lartpang
 
-from base.BaseOps import cus_sample
 from torch import nn
+
+from backbone.wsgn import customized_func as L
+from utils.tensor_ops import cus_sample
 
 
 class SIM(nn.Module):
@@ -14,21 +16,21 @@ class SIM(nn.Module):
         self.h2l_pool = nn.AvgPool2d((2, 2), stride=2)
         self.l2h_up = cus_sample
 
-        self.h2l_0 = nn.Conv2d(h_C, l_C, 3, 1, 1)
-        self.h2h_0 = nn.Conv2d(h_C, h_C, 3, 1, 1)
-        self.bnl_0 = nn.BatchNorm2d(l_C)
-        self.bnh_0 = nn.BatchNorm2d(h_C)
+        self.h2l_0 = L.Conv2d(h_C, l_C, 3, 1, 1)
+        self.h2h_0 = L.Conv2d(h_C, h_C, 3, 1, 1)
+        self.bnl_0 = L.BatchNorm2d(l_C)
+        self.bnh_0 = L.BatchNorm2d(h_C)
 
-        self.h2h_1 = nn.Conv2d(h_C, h_C, 3, 1, 1)
-        self.h2l_1 = nn.Conv2d(h_C, l_C, 3, 1, 1)
-        self.l2h_1 = nn.Conv2d(l_C, h_C, 3, 1, 1)
-        self.l2l_1 = nn.Conv2d(l_C, l_C, 3, 1, 1)
-        self.bnl_1 = nn.BatchNorm2d(l_C)
-        self.bnh_1 = nn.BatchNorm2d(h_C)
+        self.h2h_1 = L.Conv2d(h_C, h_C, 3, 1, 1)
+        self.h2l_1 = L.Conv2d(h_C, l_C, 3, 1, 1)
+        self.l2h_1 = L.Conv2d(l_C, h_C, 3, 1, 1)
+        self.l2l_1 = L.Conv2d(l_C, l_C, 3, 1, 1)
+        self.bnl_1 = L.BatchNorm2d(l_C)
+        self.bnh_1 = L.BatchNorm2d(h_C)
 
-        self.h2h_2 = nn.Conv2d(h_C, h_C, 3, 1, 1)
-        self.l2h_2 = nn.Conv2d(l_C, h_C, 3, 1, 1)
-        self.bnh_2 = nn.BatchNorm2d(h_C)
+        self.h2h_2 = L.Conv2d(h_C, h_C, 3, 1, 1)
+        self.l2h_2 = L.Conv2d(l_C, h_C, 3, 1, 1)
+        self.bnh_2 = L.BatchNorm2d(h_C)
 
         self.relu = nn.ReLU(True)
 
@@ -64,42 +66,42 @@ class conv_2nV1(nn.Module):
         self.l2h_up = nn.Upsample(scale_factor=2, mode="nearest")
 
         # stage 0
-        self.h2h_0 = nn.Conv2d(in_hc, mid_c, 3, 1, 1)
-        self.l2l_0 = nn.Conv2d(in_lc, mid_c, 3, 1, 1)
-        self.bnh_0 = nn.BatchNorm2d(mid_c)
-        self.bnl_0 = nn.BatchNorm2d(mid_c)
+        self.h2h_0 = L.Conv2d(in_hc, mid_c, 3, 1, 1)
+        self.l2l_0 = L.Conv2d(in_lc, mid_c, 3, 1, 1)
+        self.bnh_0 = L.BatchNorm2d(mid_c)
+        self.bnl_0 = L.BatchNorm2d(mid_c)
 
         # stage 1
-        self.h2h_1 = nn.Conv2d(mid_c, mid_c, 3, 1, 1)
-        self.h2l_1 = nn.Conv2d(mid_c, mid_c, 3, 1, 1)
-        self.l2h_1 = nn.Conv2d(mid_c, mid_c, 3, 1, 1)
-        self.l2l_1 = nn.Conv2d(mid_c, mid_c, 3, 1, 1)
-        self.bnl_1 = nn.BatchNorm2d(mid_c)
-        self.bnh_1 = nn.BatchNorm2d(mid_c)
+        self.h2h_1 = L.Conv2d(mid_c, mid_c, 3, 1, 1)
+        self.h2l_1 = L.Conv2d(mid_c, mid_c, 3, 1, 1)
+        self.l2h_1 = L.Conv2d(mid_c, mid_c, 3, 1, 1)
+        self.l2l_1 = L.Conv2d(mid_c, mid_c, 3, 1, 1)
+        self.bnl_1 = L.BatchNorm2d(mid_c)
+        self.bnh_1 = L.BatchNorm2d(mid_c)
 
         if self.main == 0:
             # stage 2
-            self.h2h_2 = nn.Conv2d(mid_c, mid_c, 3, 1, 1)
-            self.l2h_2 = nn.Conv2d(mid_c, mid_c, 3, 1, 1)
-            self.bnh_2 = nn.BatchNorm2d(mid_c)
+            self.h2h_2 = L.Conv2d(mid_c, mid_c, 3, 1, 1)
+            self.l2h_2 = L.Conv2d(mid_c, mid_c, 3, 1, 1)
+            self.bnh_2 = L.BatchNorm2d(mid_c)
 
             # stage 3
-            self.h2h_3 = nn.Conv2d(mid_c, out_c, 3, 1, 1)
-            self.bnh_3 = nn.BatchNorm2d(out_c)
+            self.h2h_3 = L.Conv2d(mid_c, out_c, 3, 1, 1)
+            self.bnh_3 = L.BatchNorm2d(out_c)
 
-            self.identity = nn.Conv2d(in_hc, out_c, 1)
+            self.identity = L.Conv2d(in_hc, out_c, 1)
 
         elif self.main == 1:
             # stage 2
-            self.h2l_2 = nn.Conv2d(mid_c, mid_c, 3, 1, 1)
-            self.l2l_2 = nn.Conv2d(mid_c, mid_c, 3, 1, 1)
-            self.bnl_2 = nn.BatchNorm2d(mid_c)
+            self.h2l_2 = L.Conv2d(mid_c, mid_c, 3, 1, 1)
+            self.l2l_2 = L.Conv2d(mid_c, mid_c, 3, 1, 1)
+            self.bnl_2 = L.BatchNorm2d(mid_c)
 
             # stage 3
-            self.l2l_3 = nn.Conv2d(mid_c, out_c, 3, 1, 1)
-            self.bnl_3 = nn.BatchNorm2d(out_c)
+            self.l2l_3 = L.Conv2d(mid_c, out_c, 3, 1, 1)
+            self.bnl_3 = L.BatchNorm2d(out_c)
 
-            self.identity = nn.Conv2d(in_lc, out_c, 1)
+            self.identity = L.Conv2d(in_lc, out_c, 1)
 
         else:
             raise NotImplementedError
@@ -150,36 +152,36 @@ class conv_3nV1(nn.Module):
         self.relu = nn.ReLU(True)
 
         # stage 0
-        self.h2h_0 = nn.Conv2d(in_hc, mid_c, 3, 1, 1)
-        self.m2m_0 = nn.Conv2d(in_mc, mid_c, 3, 1, 1)
-        self.l2l_0 = nn.Conv2d(in_lc, mid_c, 3, 1, 1)
-        self.bnh_0 = nn.BatchNorm2d(mid_c)
-        self.bnm_0 = nn.BatchNorm2d(mid_c)
-        self.bnl_0 = nn.BatchNorm2d(mid_c)
+        self.h2h_0 = L.Conv2d(in_hc, mid_c, 3, 1, 1)
+        self.m2m_0 = L.Conv2d(in_mc, mid_c, 3, 1, 1)
+        self.l2l_0 = L.Conv2d(in_lc, mid_c, 3, 1, 1)
+        self.bnh_0 = L.BatchNorm2d(mid_c)
+        self.bnm_0 = L.BatchNorm2d(mid_c)
+        self.bnl_0 = L.BatchNorm2d(mid_c)
 
         # stage 1
-        self.h2h_1 = nn.Conv2d(mid_c, mid_c, 3, 1, 1)
-        self.h2m_1 = nn.Conv2d(mid_c, mid_c, 3, 1, 1)
-        self.m2h_1 = nn.Conv2d(mid_c, mid_c, 3, 1, 1)
-        self.m2m_1 = nn.Conv2d(mid_c, mid_c, 3, 1, 1)
-        self.m2l_1 = nn.Conv2d(mid_c, mid_c, 3, 1, 1)
-        self.l2m_1 = nn.Conv2d(mid_c, mid_c, 3, 1, 1)
-        self.l2l_1 = nn.Conv2d(mid_c, mid_c, 3, 1, 1)
-        self.bnh_1 = nn.BatchNorm2d(mid_c)
-        self.bnm_1 = nn.BatchNorm2d(mid_c)
-        self.bnl_1 = nn.BatchNorm2d(mid_c)
+        self.h2h_1 = L.Conv2d(mid_c, mid_c, 3, 1, 1)
+        self.h2m_1 = L.Conv2d(mid_c, mid_c, 3, 1, 1)
+        self.m2h_1 = L.Conv2d(mid_c, mid_c, 3, 1, 1)
+        self.m2m_1 = L.Conv2d(mid_c, mid_c, 3, 1, 1)
+        self.m2l_1 = L.Conv2d(mid_c, mid_c, 3, 1, 1)
+        self.l2m_1 = L.Conv2d(mid_c, mid_c, 3, 1, 1)
+        self.l2l_1 = L.Conv2d(mid_c, mid_c, 3, 1, 1)
+        self.bnh_1 = L.BatchNorm2d(mid_c)
+        self.bnm_1 = L.BatchNorm2d(mid_c)
+        self.bnl_1 = L.BatchNorm2d(mid_c)
 
         # stage 2
-        self.h2m_2 = nn.Conv2d(mid_c, mid_c, 3, 1, 1)
-        self.l2m_2 = nn.Conv2d(mid_c, mid_c, 3, 1, 1)
-        self.m2m_2 = nn.Conv2d(mid_c, mid_c, 3, 1, 1)
-        self.bnm_2 = nn.BatchNorm2d(mid_c)
+        self.h2m_2 = L.Conv2d(mid_c, mid_c, 3, 1, 1)
+        self.l2m_2 = L.Conv2d(mid_c, mid_c, 3, 1, 1)
+        self.m2m_2 = L.Conv2d(mid_c, mid_c, 3, 1, 1)
+        self.bnm_2 = L.BatchNorm2d(mid_c)
 
         # stage 3
-        self.m2m_3 = nn.Conv2d(mid_c, out_c, 3, 1, 1)
-        self.bnm_3 = nn.BatchNorm2d(out_c)
+        self.m2m_3 = L.Conv2d(mid_c, out_c, 3, 1, 1)
+        self.bnm_3 = L.BatchNorm2d(out_c)
 
-        self.identity = nn.Conv2d(in_mc, out_c, 1)
+        self.identity = L.Conv2d(in_mc, out_c, 1)
 
     def forward(self, in_h, in_m, in_l):
         # stage 0
@@ -234,6 +236,39 @@ class LightAIM(nn.Module):
         out_xs.append(self.conv4(xs[3], xs[4]))
 
         return out_xs
+
+
+class BasicConv2d(nn.Module):
+    def __init__(
+        self,
+        in_planes,
+        out_planes,
+        kernel_size,
+        stride=1,
+        padding=0,
+        dilation=1,
+        groups=1,
+        bias=False,
+    ):
+        super(BasicConv2d, self).__init__()
+
+        self.basicconv = nn.Sequential(
+            L.Conv2d(
+                in_planes,
+                out_planes,
+                kernel_size=kernel_size,
+                stride=stride,
+                padding=padding,
+                dilation=dilation,
+                groups=groups,
+                bias=bias,
+            ),
+            L.BatchNorm2d(out_planes),
+            nn.ReLU(inplace=True),
+        )
+
+    def forward(self, x):
+        return self.basicconv(x)
 
 
 if __name__ == "__main__":

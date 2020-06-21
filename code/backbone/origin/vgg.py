@@ -7,8 +7,6 @@
 import torch.nn as nn
 from torchvision.models.utils import load_state_dict_from_url
 
-__all__ = ["Backbone_VGG16_in3"]
-
 model_urls = {
     "vgg11": "https://download.pytorch.org/models/vgg11-bbd30ac9.pth",
     "vgg13": "https://download.pytorch.org/models/vgg13-c768596a.pth",
@@ -151,16 +149,6 @@ def vgg19_bn(pretrained=False, progress=True, **kwargs):
         progress (bool): If True, displays a progress bar of the download to stderr
     """
     return _vgg("vgg19_bn", "E", True, pretrained, progress, **kwargs)
-
-
-def Backbone_VGG16_in3():
-    net = vgg16_bn(pretrained=True, progress=True)
-    div_1 = nn.Sequential(*list(net.children())[0][0:6])
-    div_2 = nn.Sequential(*list(net.children())[0][6:13])
-    div_4 = nn.Sequential(*list(net.children())[0][13:23])
-    div_8 = nn.Sequential(*list(net.children())[0][23:33])
-    div_16 = nn.Sequential(*list(net.children())[0][33:43])
-    return div_1, div_2, div_4, div_8, div_16
 
 
 if __name__ == "__main__":

@@ -61,8 +61,6 @@ def _make_teloader(dataset, shuffle=True, drop_last=False):
 
 
 def create_loader(data_path, mode, get_length=False, prefix=(".jpg", ".png"), size_list=None):
-    length_of_dataset = 0
-
     if mode == "train":
         construct_print(f"Training on: {data_path}")
         train_set = TrainImageFolder(
@@ -74,14 +72,10 @@ def create_loader(data_path, mode, get_length=False, prefix=(".jpg", ".png"), si
         loader = _make_trloader(train_set, shuffle=True, drop_last=True, size_list=size_list)
         length_of_dataset = len(train_set)
     elif mode == "test":
-        if data_path is not None:
-            construct_print(f"Testing on: {data_path}")
-            test_set = TestImageFolder(data_path, in_size=arg_config["input_size"], prefix=prefix)
-            loader = _make_teloader(test_set, shuffle=False, drop_last=False)
-            length_of_dataset = len(test_set)
-        else:
-            construct_print(f"No test...")
-            loader = None
+        construct_print(f"Testing on: {data_path}")
+        test_set = TestImageFolder(data_path, in_size=arg_config["input_size"], prefix=prefix)
+        loader = _make_teloader(test_set, shuffle=False, drop_last=False)
+        length_of_dataset = len(test_set)
     else:
         raise NotImplementedError
 

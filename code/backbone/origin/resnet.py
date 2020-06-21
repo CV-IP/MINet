@@ -7,8 +7,6 @@
 import torch.nn as nn
 import torch.utils.model_zoo as model_zoo
 
-__all__ = ["Backbone_ResNet50_in3"]
-
 model_urls = {
     "resnet18": "https://download.pytorch.org/models/resnet18-5c106cde.pth",
     "resnet34": "https://download.pytorch.org/models/resnet34-333f7ec4.pth",
@@ -208,7 +206,6 @@ def resnet50(pretrained=False, **kwargs):
 
     if pretrained:
         pretrained_dict = model_zoo.load_url(model_urls["resnet50"])
-
         model_dict = model.state_dict()
         # 1. filter out unnecessary keys
         pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
@@ -262,12 +259,5 @@ def resnet152(pretrained=False, **kwargs):
     return model
 
 
-def Backbone_ResNet50_in3():
-    net = resnet50(pretrained=True)
-    div_2 = nn.Sequential(*list(net.children())[:3])
-    div_4 = nn.Sequential(*list(net.children())[3:5])
-    div_8 = net.layer2
-    div_16 = net.layer3
-    div_32 = net.layer4
-
-    return div_2, div_4, div_8, div_16, div_32
+if __name__ == "__main__":
+    resnet50(pretrained=True)

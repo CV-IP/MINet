@@ -8,6 +8,10 @@ CVPR 2020.
 
 The code and experimental results have be released now :smile:.
 
+* 2020/6/21: Some useful modifications.
+    * I optimized the testing process. For details, you can see `code/readme.md`.
+    * Added some backbone models using `ws+gn` which can further improve the generalization performance of the model. If there is a need, I can provide the pretrained parameter file of the corresponding improved version of MINet. :)
+    * The directory structure has been adjusted.
 * 2020/5/10: Some meaningful changes.
     * Some methods have been tried to improve the performance of the model on specific operating environments and devices. The specific experimental results can be found in the section "More Experiments" of `./code/readme.md`.
     * Use black as the repository formatting tool, and set the configuration file `./code/pyproject.toml`.
@@ -34,7 +38,7 @@ The code and experimental results have be released now :smile:.
     - Baidu Pan: <https://pan.baidu.com/s/1zN7m4aeDhRvTOeF2naATRg> (baidu: 48au)
     - Google Drive: <https://drive.google.com/file/d/1gUYu0hO_8Xc5jgpzetuOVFDrqeSOiKZN/view?usp=sharing>
 * Results & Pretrained Parameters:
-    - https://drive.google.com/drive/folders/16yTcf_m-ehnhWgXlN6hbZpBKMy6lYIQQ?usp=sharing
+    - <https://drive.google.com/drive/folders/16yTcf_m-ehnhWgXlN6hbZpBKMy6lYIQQ?usp=sharing>
 
 ## Paper Details
 

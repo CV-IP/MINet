@@ -6,7 +6,6 @@ import torch
 from PIL import Image
 from tensorboardX import SummaryWriter
 from torch.nn import BCELoss
-from torch.optim import Adam, SGD, lr_scheduler
 from torchvision import transforms
 from torchvision.utils import make_grid
 from tqdm import tqdm
@@ -17,6 +16,13 @@ from utils.config import arg_config, path_config
 from utils.imgs.create_loader_imgs import create_loader
 from utils.metric import cal_maxf, cal_pr_mae_meanf
 from utils.misc import AvgMeter, construct_print, make_log, write_xlsx
+from utils.pipeline_ops import (
+    get_total_loss,
+    make_optimizer,
+    make_scheduler,
+    resume_checkpoint,
+    save_checkpoint,
+)
 
 
 class Solver:
@@ -34,7 +40,6 @@ class Solver:
         self.exp_name = self.exp_name.replace("@", "_")
 
         self.tr_data_path = self.args["rgb_data"]["tr_data_path"]
-        self.te_data_path = self.args["rgb_data"]["te_data_path"]
         self.te_data_list = self.args["rgb_data"]["te_data_list"]
 
         self.save_path = self.path["save"]
@@ -48,11 +53,11 @@ class Solver:
             data_path=self.tr_data_path,
             mode="train",
             get_length=False,
+            prefix=self.args["prefix"],
             size_list=self.args["size_list"],
         )
-        self.te_loader, self.te_length = create_loader(
-            data_path=self.te_data_path, mode="test", get_length=True
-        )
+        self.end_epoch = self.args["epoch_num"]
+        self.iter_num = self.end_epoch * len(self.tr_loader)
 
         if hasattr(network_lib, network_realname):
             self.net = getattr(network_lib, network_realname)().to(self.dev)
@@ -60,35 +65,55 @@ class Solver:
             raise AttributeError
         pprint(self.args)
 
-        if self.args["resume"]:
-            self.resume_checkpoint(load_path=self.path["final_full_net"], mode="all")
-        else:
+        self.opti = make_optimizer(
+            model=self.net,
+            optimizer_type=self.args["optim"],
+            optimizer_info=dict(
+                lr=self.args["lr"],
+                momentum=self.args["momentum"],
+                weight_decay=self.args["weight_decay"],
+                nesterov=self.args["nesterov"],
+            ),
+        )
+        self.sche = make_scheduler(
+            optimizer=self.opti,
+            total_num=self.iter_num if self.args["sche_usebatch"] else self.end_epoch,
+            scheduler_type=self.args["lr_type"],
+            scheduler_info=dict(
+                lr_decay=self.args["lr_decay"], warmup_epoch=self.args["warmup_epoch"]
+            ),
+        )
+
+        if self.args["resume_mode"] == "train":
+            # resume model to train the model
+            self.start_epoch = resume_checkpoint(
+                model=self.net,
+                optimizer=self.opti,
+                scheduler=self.sche,
+                exp_name=self.exp_name,
+                load_path=self.path["final_full_net"],
+                mode="all",
+            )
+            self.only_test = False
+        elif self.args["resume_mode"] == "test":
+            # resume model only to test model.
+            # self.start_epoch is useless
+            resume_checkpoint(
+                model=self.net, load_path=self.pth_path, mode="onlynet",
+            )
+            self.only_test = True
+        elif not self.args["resume_mode"]:
+            # only train a new model.
             self.start_epoch = 0
-        self.end_epoch = self.args["epoch_num"]
-        self.only_test = self.start_epoch == self.end_epoch
+            self.only_test = False
+        else:
+            raise NotImplementedError
 
         if not self.only_test:
-            self.iter_num = self.end_epoch * len(self.tr_loader)
-            self.opti = self.make_optim()
-            self.sche = self.make_scheduler()
-
             # 损失函数
             self.loss_funcs = [BCELoss(reduction=self.args["reduction"]).to(self.dev)]
             if self.args["use_aux_loss"]:
                 self.loss_funcs.append(CEL().to(self.dev))
-
-    def total_loss(self, train_preds, train_alphas):
-        loss_list = []
-        loss_item_list = []
-
-        assert len(self.loss_funcs) != 0, "请指定损失函数`self.loss_funcs`"
-        for loss in self.loss_funcs:
-            loss_out = loss(train_preds, train_alphas)
-            loss_list.append(loss_out)
-            loss_item_list.append(f"{loss_out.item():.5f}")
-
-        train_loss = sum(loss_list)
-        return train_loss, loss_item_list
 
     def train(self):
         for curr_epoch in range(self.start_epoch, self.end_epoch):
@@ -102,7 +127,9 @@ class Solver:
                 train_masks = train_masks.to(self.dev, non_blocking=True)
                 train_preds = self.net(train_inputs)
 
-                train_loss, loss_item_list = self.total_loss(train_preds, train_masks)
+                train_loss, loss_item_list = get_total_loss(
+                    train_preds, train_masks, self.loss_funcs
+                )
                 train_loss.backward()
                 self.opti.step()
 
@@ -118,7 +145,8 @@ class Solver:
                 if self.args["tb_update"] > 0 and (curr_iter + 1) % self.args["tb_update"] == 0:
                     self.tb.add_scalar("data/trloss_avg", train_loss_record.avg, curr_iter)
                     self.tb.add_scalar("data/trloss_iter", train_iter_loss, curr_iter)
-                    self.tb.add_scalar("data/trlr", self.opti.param_groups[0]["lr"], curr_iter)
+                    for idx, param_groups in enumerate(self.opti.param_groups):
+                        self.tb.add_scalar(f"data/lr_{idx}", param_groups["lr"], curr_iter)
                     tr_tb_mask = make_grid(train_masks, nrow=train_batch_size, padding=5)
                     self.tb.add_image("trmasks", tr_tb_mask, curr_iter)
                     tr_tb_out_1 = make_grid(train_preds, nrow=train_batch_size, padding=5)
@@ -126,10 +154,13 @@ class Solver:
 
                 # 记录每一次迭代的数据
                 if self.args["print_freq"] > 0 and (curr_iter + 1) % self.args["print_freq"] == 0:
+                    lr_str = ",".join(
+                        [f"{param_groups['lr']:.7f}" for param_groups in self.opti.param_groups]
+                    )
                     log = (
                         f"[I:{curr_iter}/{self.iter_num}][E:{curr_epoch}:{self.end_epoch}]>"
                         f"[{self.exp_name}]"
-                        f"[Lr:{self.opti.param_groups[0]['lr']:.7f}]"
+                        f"[Lr:{lr_str}]"
                         f"[Avg:{train_loss_record.avg:.5f}|Cur:{train_iter_loss:.5f}|"
                         f"{loss_item_list}]"
                     )
@@ -141,36 +172,44 @@ class Solver:
                 self.sche.step()
 
             # 每个周期都进行保存测试，保存的是针对第curr_epoch+1周期的参数
-            self.save_checkpoint(
-                curr_epoch + 1,
+            save_checkpoint(
+                model=self.net,
+                optimizer=self.opti,
+                scheduler=self.sche,
+                exp_name=self.exp_name,
+                current_epoch=curr_epoch + 1,
                 full_net_path=self.path["final_full_net"],
                 state_net_path=self.path["final_state_net"],
             )  # 保存参数
 
+        total_results = self.test()
+        # save result into xlsx file.
+        write_xlsx(self.exp_name, total_results)
+
+    def test(self):
+        self.net.eval()
+
         total_results = {}
         for data_name, data_path in self.te_data_list.items():
             construct_print(f"Testing with testset: {data_name}")
-            self.te_loader, self.te_length = create_loader(
-                data_path=data_path, mode="test", get_length=True
+            self.te_loader = create_loader(
+                data_path=data_path, mode="test", get_length=False, prefix=self.args["prefix"],
             )
             self.save_path = os.path.join(self.path["save"], data_name)
             if not os.path.exists(self.save_path):
                 construct_print(f"{self.save_path} do not exist. Let's create it.")
                 os.makedirs(self.save_path)
-            results = self.test(save_pre=self.save_pre)
+            results = self.__test_process(save_pre=self.save_pre)
             msg = f"Results on the testset({data_name}:'{data_path}'): {results}"
             construct_print(msg)
             make_log(self.path["te_log"], msg)
 
             total_results[data_name.upper()] = results
-        # save result into xlsx file.
-        write_xlsx(self.exp_name, total_results)
 
-    def test(self, save_pre):
-        if self.only_test:
-            self.resume_checkpoint(load_path=self.pth_path, mode="onlynet")
-        self.net.eval()
+        self.net.train()
+        return total_results
 
+    def __test_process(self, save_pre):
         loader = self.te_loader
 
         pres = [AvgMeter() for _ in range(256)]
@@ -209,176 +248,6 @@ class Solver:
         maxf = cal_maxf([pre.avg for pre in pres], [rec.avg for rec in recs])
         results = {"MAXF": maxf, "MEANF": meanfs.avg, "MAE": maes.avg}
         return results
-
-    def make_scheduler(self):
-        def get_lr_coefficient(curr_epoch):
-            # curr_epoch start from 0
-            total_num = self.iter_num if self.args["sche_usebatch"] else self.end_epoch
-            if self.args["lr_type"] == "poly":
-                coefficient = pow((1 - float(curr_epoch) / total_num), self.args["lr_decay"])
-            elif self.args["lr_type"] == "poly_warmup":
-                turning_epoch = self.args["warmup_epoch"]
-                if curr_epoch < turning_epoch:
-                    # 0,1,2,...,turning_epoch-1
-                    coefficient = 1 / turning_epoch * (1 + curr_epoch)
-                else:
-                    # turning_epoch,...,end_epoch
-                    curr_epoch -= turning_epoch - 1
-                    total_num -= turning_epoch - 1
-                    coefficient = pow((1 - float(curr_epoch) / total_num), self.args["lr_decay"])
-            elif self.args["lr_type"] == "cosine_warmup":
-                turning_epoch = self.args["warmup_epoch"]
-                if curr_epoch < turning_epoch:
-                    # 0,1,2,...,turning_epoch-1
-                    coefficient = 1 / turning_epoch * (1 + curr_epoch)
-                else:
-                    # turning_epoch,...,end_epoch
-                    curr_epoch -= turning_epoch - 1
-                    total_num -= turning_epoch - 1
-                    coefficient = (1 + np.cos(np.pi * curr_epoch / total_num)) / 2
-            elif self.args["lr_type"] == "f3_sche":
-                coefficient = 1 - abs((curr_epoch + 1) / (total_num + 1) * 2 - 1)
-            else:
-                raise NotImplementedError
-            return coefficient
-
-        scheduler = lr_scheduler.LambdaLR(self.opti, lr_lambda=get_lr_coefficient)
-        return scheduler
-
-    def make_optim(self):
-        if self.args["optim"] == "sgd_trick":
-            # https://github.com/implus/PytorchInsight/blob/master/classification/imagenet_tricks.py
-            params = [
-                {
-                    "params": [
-                        p
-                        for name, p in self.net.named_parameters()
-                        if ("bias" in name or "bn" in name)
-                    ],
-                    "weight_decay": 0,
-                },
-                {
-                    "params": [
-                        p
-                        for name, p in self.net.named_parameters()
-                        if ("bias" not in name and "bn" not in name)
-                    ]
-                },
-            ]
-            optimizer = SGD(
-                params,
-                lr=self.args["lr"],
-                momentum=self.args["momentum"],
-                weight_decay=self.args["weight_decay"],
-                nesterov=self.args["nesterov"],
-            )
-        elif self.args["optim"] == "sgd_r3":
-            params = [
-                # 不对bias参数执行weight decay操作，weight decay主要的作用就是通过对网络
-                # 层的参数（包括weight和bias）做约束（L2正则化会使得网络层的参数更加平滑）达
-                # 到减少模型过拟合的效果。
-                {
-                    "params": [
-                        param for name, param in self.net.named_parameters() if name[-4:] == "bias"
-                    ],
-                    "lr": 2 * self.args["lr"],
-                },
-                {
-                    "params": [
-                        param for name, param in self.net.named_parameters() if name[-4:] != "bias"
-                    ],
-                    "lr": self.args["lr"],
-                    "weight_decay": self.args["weight_decay"],
-                },
-            ]
-            optimizer = SGD(params, momentum=self.args["momentum"])
-        elif self.args["optim"] == "sgd_all":
-            optimizer = SGD(
-                self.net.parameters(),
-                lr=self.args["lr"],
-                weight_decay=self.args["weight_decay"],
-                momentum=self.args["momentum"],
-            )
-        elif self.args["optim"] == "adam":
-            optimizer = Adam(
-                self.net.parameters(),
-                lr=self.args["lr"],
-                betas=(0.9, 0.999),
-                eps=1e-8,
-                weight_decay=self.args["weight_decay"],
-            )
-        elif self.args["optim"] == "f3_trick":
-            backbone, head = [], []
-            for name, params_tensor in self.net.named_parameters():
-                if name.startswith("div_2"):
-                    pass
-                elif name.startswith("div"):
-                    backbone.append(params_tensor)
-                else:
-                    head.append(params_tensor)
-            params = [
-                {"params": backbone, "lr": 0.1 * self.args["lr"]},
-                {"params": head, "lr": self.args["lr"]},
-            ]
-            optimizer = SGD(
-                params=params,
-                momentum=self.args["momentum"],
-                weight_decay=self.args["weight_decay"],
-                nesterov=self.args["nesterov"],
-            )
-        else:
-            raise NotImplementedError
-        print("optimizer = ", optimizer)
-        return optimizer
-
-    def save_checkpoint(self, current_epoch, full_net_path, state_net_path):
-        """
-        保存完整参数模型（大）和状态参数模型（小）
-
-        Args:
-            current_epoch (int): 当前周期
-            full_net_path (str): 保存完整参数模型的路径
-            state_net_path (str): 保存模型权重参数的路径
-        """
-        state_dict = {
-            "arch": self.exp_name,
-            "epoch": current_epoch,
-            "net_state": self.net.state_dict(),
-            "opti_state": self.opti.state_dict(),
-        }
-        torch.save(state_dict, full_net_path)
-        torch.save(self.net.state_dict(), state_net_path)
-
-    def resume_checkpoint(self, load_path, mode="all"):
-        """
-        从保存节点恢复模型
-
-        Args:
-            load_path (str): 模型存放路径
-            mode (str): 选择哪种模型恢复模式:
-                - 'all': 回复完整模型，包括训练中的的参数；
-                - 'onlynet': 仅恢复模型权重参数
-        """
-        if os.path.exists(load_path) and os.path.isfile(load_path):
-            construct_print(f"Loading checkpoint '{load_path}'")
-            checkpoint = torch.load(load_path)
-            if mode == "all":
-                if self.exp_name == checkpoint["arch"]:
-                    self.start_epoch = checkpoint["epoch"]
-                    self.net.load_state_dict(checkpoint["net_state"])
-                    self.opti.load_state_dict(checkpoint["opti_state"])
-                    construct_print(f"Loaded '{load_path}' " f"(epoch {checkpoint['epoch']})")
-                else:
-                    raise Exception(f"{load_path} does not match.")
-            elif mode == "onlynet":
-                self.net.load_state_dict(checkpoint)
-                construct_print(
-                    f"Loaded checkpoint '{load_path}' " f"(only has the net's weight params)"
-                )
-            else:
-                raise NotImplementedError
-        else:
-            raise Exception(f"{load_path}路径不正常，请检查")
 
 
 if __name__ == "__main__":

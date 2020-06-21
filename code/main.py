@@ -16,6 +16,9 @@ construct_print(f"Total initialization time：{datetime.now() - init_start}")
 shutil.copy(f"{proj_root}/utils/config.py", path_config["cfg_log"])
 shutil.copy(f"{proj_root}/utils/solver.py", path_config["trainer_log"])
 
-construct_print(f"{datetime.now()}: Start training...")
-solver.train()
-construct_print(f"{datetime.now()}: End training...")
+construct_print(f"{datetime.now()}: Start...")
+if solver.only_test:
+    solver.test()
+else:
+    solver.train()
+construct_print(f"{datetime.now()}: End...")

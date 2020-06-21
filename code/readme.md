@@ -4,10 +4,11 @@
 
 ## Folders & Files
 
-* `base`: Store some basic code for building the network here.
+* `backbone`: Store some code for backbone networks.
 * `loss`: The code of the loss function.
-* `models`: The code of important modules.
+* `module`: The code of important modules.
 * `network`: The code of the network.
+* `output`: It saves all results.
 * `utils`: Some instrumental code.
     * `utils/config.py`: Configuration file for model training and testing.
     * `utils/imgs/*py`: Some files about creating the dataloader.
@@ -42,25 +43,37 @@ pip install tensorboardX
 pip install tensorflow==1.13.1
 ```
 
+## Note
+
+* (2020-06-21 update) There are two important configuration items in the configuration dictionary: 
+    * `exp_name`: It is divided into two parts by `@`. The first part is the class name of the corresponding model, and the second part is the additional string customized to distinguish between different configurations. 
+        * For example, if we can set it to `MINet_VGG16@e_40_lr_0.025_opti_f3trick_sche_Poly`, we will use the model `MINet_VGG16` from the folder `network` (Note: you must import the model into the `./network/__init__.py` in advance), and the corresponding folder, where all files generated during the running of the model will be saved, will have the name `MINet_VGG16_e_40_lr_0.025_opti_f3trick_sche_Poly`.
+    * `resume_mode`: It indicates whether you want to use the existing parameter files ('XXX.pth') stored in the `pth` folder in the model folder corresponding to `exp_name`. 
+        * If you set it to `test`, and your `exp_name` is `MINet_VGG16@e_40_lr_0.025_opti_f3trick_sche_Poly`, the `.pth` file should be placed in `./output/MINet_VGG16_e_40_lr_0.025_opti_f3trick_sche_Poly/pth/state_final.pth` (**Please be careful to change the name of the `.pth` file to `state_final.pth` if you use our pretrained parameter file.**).
+        * If your training process is interrupted, you can set it to `train`, and it will automatically load the existing `checkpoint_final.pth.tar` file from the pth folder to resume the training process.
+        * In the case of **training the model from scratch** (that is, start_epoch=0), you just need to set it to `""`.
+
 ## Train
 
 1. You can customize the value of the [`arg_config`](./utils/config.py#L20) dictionary in the configuration file.
     * The first time you use it, you need to adjust the [path](./utils/config.py#L9-L17) of every dataset.
-    * And other setting in `config.py`, like `epoch_num`, `lr` and so on...
+    * Set the item `resume_mode` to `""`.
+    * And other setting in `config.py`, like `exp_name`, `epoch_num`, `lr` and so on...
 2. In the folder `code`, run the command `python main.py`.
 3. Everything is OK. Just wait for the results.
 4. The test will be performed automatically when the training is completed.
 5. All results will be saved into the folder `output`, including predictions in folder `pre` (if you set `save_pre` to `True`), `.pth` files in folder `pth` and other log files.
 
-## If you want to test the trained model again...
+## If you want to **test** the trained model again...
 
 **Our pre-training parameters can also be used in this way.**
 
-1. In the `output` folder, please ensure that there is a folder corresponding to the model, which contains the `pth` folder, and the `.pth` file of the model is located here.
-2. Set the value of `NET` of `arg_config` to the model you want to test like these [lines](utils/config.py#L27-L30).
-3. Set the value of `epoch_num` to 0.
-4. In the folder `code`, run `python main.py`.
-5. You can find predictions from the model in the folder `pre` of the `output`.
+1. In the `output` folder, please ensure that there is **a folder corresponding to the model (See [Note](#Note))**, which contains the `pth` folder, and the `.pth` file of the model is located here and its name is `state_final.pth`.
+2. Set the value of `exp_name` of `arg_config` to the model you want to test like these [lines](utils/config.py#L27-L30).
+3. Set the value of `te_data_list` to your dataset path.
+4. Set the value of `resume_mode` to `test`.
+5. In the folder `code`, run `python main.py`.
+6. You can find predictions from the model in the folder `pre` of the `output`.
 
 ## Evaluation
 

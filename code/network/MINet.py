@@ -1,10 +1,9 @@
 import torch.nn as nn
 
-from base.BaseBlocks import BasicConv2d
-from base.BaseOps import cus_sample, upsample_add
-from base.ResNet import Backbone_ResNet50_in3
-from base.VGG import Backbone_VGG16_in3
-from models.MyModule import AIM, SIM
+from module.BaseBlocks import BasicConv2d
+from utils.tensor_ops import cus_sample, upsample_add
+from backbone.origin.from_origin import Backbone_ResNet50_in3, Backbone_VGG16_in3
+from module.MyModule import AIM, SIM
 
 
 class MINet_VGG16(nn.Module):

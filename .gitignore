@@ -3,6 +3,8 @@
 code/.vscode/
 code/.idea/
 code/output/
+# except for .gitkeep
+!.gitkeep
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
